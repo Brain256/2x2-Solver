@@ -1,25 +1,61 @@
 #import necessary libraries
 import cv2
 from picamera2 import Picamera2
-import serial
-from time import sleep
-import RPi.GPIO as GPIO
+import time
 import numpy as np
 
-width = 200
-ROI = [0, 0, width, width]
+def createFace(x, y, width):
+    ROI = [x, y, x + width, y + width]
+    
+    ROI_tl = [ROI[0], ROI[1], ROI[0] + width/2, ROI[1] + width/2]
+    ROI_tr = [ROI[0] + width/2, ROI[1], ROI[0] + width, ROI[1] + width/2]
+    ROI_bl = [ROI[0], ROI[1] + width/2, ROI[0] + width/2, ROI[1] + width]
+    ROI_br = [ROI[0] + width/2, ROI[1] + width/2, ROI[0] + width, ROI[1] + width]
 
+    ROI_tl = list(map(int, ROI_tl))
+    ROI_bl = list(map(int, ROI_bl))
+    ROI_tr = list(map(int, ROI_tr))
+    ROI_br = list(map(int, ROI_br))
+    
+    ROI = [ROI_tl, ROI_tr, ROI_bl, ROI_br]
+    
+    return ROI
 
-ROI_tl = [ROI[0], ROI[1], ROI[0] + width/2, ROI[1] + width/2]
-ROI_tr = [ROI[0] + width/2, ROI[1], ROI[0] + width, ROI[1] + width/2]
-ROI_bl = [ROI[0], ROI[1] + width/2, ROI[0] + width/2, ROI[1] + width]
-ROI_br = [ROI[0] + width/2, ROI[1] + width/2, ROI[0] + width, ROI[1] + width]
+ROI_tl = createFace(220, 140, 200)[0]
+ROI_tr = createFace(220, 140, 200)[1]
+ROI_bl = createFace(220, 140, 200)[2]
+ROI_br = createFace(220, 140, 200)[3]
 
-ROI_tl = list(map(int, ROI_tl))
-ROI_bl = list(map(int, ROI_bl))
-ROI_tr = list(map(int, ROI_tr))
-ROI_br = list(map(int, ROI_br))
+#0 - Left, 1 - front, 2 - right, 3 - back, 4 - top, 5 - bottom
+curFace = 0
 
+face_left = createFace(10, 70, 50)
+face_front = createFace(70, 70, 50)
+face_right = createFace(130, 70, 50)
+face_back = createFace(190, 70, 50)
+face_top = createFace(70, 10, 50)
+face_bottom = createFace(70, 130, 50)
+
+faceDisplay = [face_left, face_front, face_right, face_back, face_top, face_bottom]
+faceColours = [[], [], [], [], [], []]
+
+colours = ["orange", "red", "green", "blue", "white", "yellow"]
+
+#colour codes in BGR
+colCodes = [
+    (0, 165, 255),   # Orange
+    (0, 0, 255),     # Red
+    (0, 255, 0),     # Green
+    (255, 0, 0),     # Blue
+    (255, 255, 255), # White
+    (0, 255, 255)    # Yellow
+]
+
+#0 for orange, 1 for red, 2 for green, 3 for blue, 4 for white, 5 for yellow
+quadColours = [0, 0, 0, 0]
+
+startTime = time.time()
+curTime = time.time()
 
 if __name__ == '__main__':
 
@@ -34,6 +70,14 @@ if __name__ == '__main__':
 
     #main loop
     while True:
+        
+        curTime = time.time()
+        
+        if curTime - startTime > 5:
+            if curFace != 5:
+                curFace += 1
+                startTime = time.time()
+                
 
         #get an image from pi camera
         img = picam2.capture_array()
@@ -61,7 +105,7 @@ if __name__ == '__main__':
         
         #create blue mask
         lower_blue = np.array([89, 60, 200])
-        upper_blue = np.array([95, 255, 255])
+        upper_blue = np.array([100, 255, 255])
 
         b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
         
@@ -72,8 +116,8 @@ if __name__ == '__main__':
         w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
         #create yellow mask
-        lower_yellow = np.array([28, 0, 160])
-        upper_yellow = np.array([43, 255, 255])
+        lower_yellow = np.array([28, 240, 160])
+        upper_yellow = np.array([34, 255, 255])
 
         y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
         
@@ -123,16 +167,7 @@ if __name__ == '__main__':
         max_bl_area = 0
         max_br_area = 0
         
-        #0 for orange, 1 for red, 2 for green, 3 for blue, 4 for white, 5 for yellow
-        tl_colour = 0
-        tr_colour = 0
-        bl_colour = 0
-        br_colour = 0
         
-        index_tl = 0
-        index_tr = 0
-        index_bl = 0
-        index_br = 0
         
         for i in range(len(tl)):
             if tl[i]:
@@ -141,7 +176,7 @@ if __name__ == '__main__':
                     
                     if area > max_tl_area:
                         max_tl_area = area
-                        index_tl = i
+                        quadColours[0] = colCodes[i]
                     
                     #print(area)
                         
@@ -152,7 +187,7 @@ if __name__ == '__main__':
                     
                     if area > max_tr_area:
                         max_tr_area = area
-                        index_tr = i
+                        quadColours[1] = colCodes[i]
                     
                     #print(area)
         
@@ -163,7 +198,7 @@ if __name__ == '__main__':
                     
                     if area > max_bl_area:
                         max_bl_area = area
-                        index_bl = i
+                        quadColours[2] = colCodes[i]
                     
                     #print(area)
                         
@@ -174,15 +209,14 @@ if __name__ == '__main__':
                     
                     if area > max_br_area:
                         max_br_area = area
-                        index_br = i
+                        quadColours[3] = colCodes[i]
                     
                     #print(area)
+
         
         
-        colours = ["orange", "red", "green", "blue", "white", "yellow"]
-        print(colours[index_tl], colours[index_tr])
-        print(colours[index_bl], colours[index_br], "\n")
-        
+        faceColours[curFace] = quadColours
+            
             
         if cv2.waitKey(1)==ord('q'):
             break
@@ -196,27 +230,26 @@ if __name__ == '__main__':
         #cv2.imshow("white", w_mask)
         #cv2.imshow("yellow", y_mask)
         
-        cv2.line(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[0], ROI_tl[3]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tl[2], ROI_tl[3]), (ROI_tl[2], ROI_tl[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tl[2], ROI_tl[3]), (ROI_tl[0], ROI_tl[3]), (0, 255, 255), 4)
+        img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
+        img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
+        img = cv2.rectangle(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[2], ROI_tr[3]), (0, 255, 255), 4)
+        img = cv2.rectangle(img, (ROI_br[0], ROI_br[1]), (ROI_br[2], ROI_br[3]), (0, 255, 255), 4)
         
-        cv2.line(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[2], ROI_tr[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[0], ROI_tr[3]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tr[2], ROI_tr[3]), (ROI_tr[2], ROI_tr[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_tr[2], ROI_tr[3]), (ROI_tr[0], ROI_tr[3]), (0, 255, 255), 4)
-        
-        cv2.line(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[0], ROI_bl[3]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_bl[2], ROI_bl[3]), (ROI_bl[2], ROI_bl[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_bl[2], ROI_bl[3]), (ROI_bl[0], ROI_bl[3]), (0, 255, 255), 4)
-        
-        cv2.line(img, (ROI_br[0], ROI_br[1]), (ROI_br[2], ROI_br[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_br[0], ROI_br[1]), (ROI_br[0], ROI_br[3]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_br[2], ROI_br[3]), (ROI_br[2], ROI_br[1]), (0, 255, 255), 4)
-        cv2.line(img, (ROI_br[2], ROI_br[3]), (ROI_br[0], ROI_br[3]), (0, 255, 255), 4)
+        for faceNum in range(curFace+1):
+            for quadNum in range(4):
+                face = faceDisplay[faceNum][quadNum]
+                colour = faceColours[faceNum][quadNum]
+                
+                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), colour, -1)
+                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), (0, 0, 0), 1)
+         
         
         cv2.imshow("image", img)
+        
+        print(faceColours)
+        #print(curFace)
+        #print(faceColours[curFace])
+        #print(quadColours)
         
         
         
