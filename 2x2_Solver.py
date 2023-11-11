@@ -3,6 +3,7 @@ import cv2
 from picamera2 import Picamera2
 import time
 import numpy as np
+from readchar import readkey, key
 
 def createFace(x, y, width):
     ROI = [x, y, x + width, y + width]
@@ -20,6 +21,73 @@ def createFace(x, y, width):
     ROI = [ROI_tl, ROI_tr, ROI_bl, ROI_br]
     
     return ROI
+
+def rotateCube(move, faces):
+    if move == "r":
+        face_num = 2
+        f = [1, 5, 3, 4]
+        p1_index = 1
+        p2_index = 3
+        
+        temp1 = faces[1][p1_index]
+        temp2 = faces[1][p2_index]
+        
+        faces[1][p1_index] = faces[5][p1_index]
+        faces[1][p2_index] = faces[5][p2_index]
+        
+        faces[5][p1_index] = faces[3][2]
+        faces[5][p2_index] = faces[3][0]
+        
+        faces[3][2] = faces[4][p1_index]
+        faces[3][0] = faces[4][p2_index]
+        
+        faces[4][p1_index] = temp1
+        faces[4][p2_index] = temp2
+        
+    if move == "u":
+
+        face_num = 4
+        f = [1, 2, 3, 0]
+        p1_index = 0
+        p2_index = 1
+        
+        p1 = faces[f[0]][p1_index]
+        p2 = faces[f[0]][p2_index]
+        
+        for i in range(3):
+            faces[f[i]][p1_index] = faces[f[i+1]][p1_index]
+            faces[f[i]][p2_index] = faces[f[i+1]][p2_index]
+        
+        faces[f[3]][p1_index] = p1
+        faces[f[3]][p2_index] = p2
+
+    
+    if move == "f":
+        face_num = 1
+        
+        temp1 = faces[4][2]
+        temp2 = faces[4][3]
+        
+        faces[4][2] = faces[0][3]
+        faces[4][3] = faces[0][1]
+        
+        faces[0][3] = faces[5][1]
+        faces[0][1] = faces[5][0]
+        
+        faces[5][1] = faces[2][0]
+        faces[5][0] = faces[2][2]
+        
+        faces[2][0] = temp1
+        faces[2][2] = temp2
+        
+    temp = faces[face_num][2]
+    
+    faces[face_num][2] = faces[face_num][3]
+    faces[face_num][3] = faces[face_num][1]
+    faces[face_num][1] = faces[face_num][0]
+    faces[face_num][0] = temp
+
+    return faces
 
 ROI_tl = createFace(220, 140, 200)[0]
 ROI_tr = createFace(220, 140, 200)[1]
@@ -176,7 +244,7 @@ if __name__ == '__main__':
                         
                         if area > max_tl_area:
                             max_tl_area = area
-                            quadColours[0] = colCodes[i]
+                            quadColours[0] = i
                         
                         #print(area)
                             
@@ -187,7 +255,7 @@ if __name__ == '__main__':
                         
                         if area > max_tr_area:
                             max_tr_area = area
-                            quadColours[1] = colCodes[i]
+                            quadColours[1] = i
                         
                         #print(area)
             
@@ -198,7 +266,7 @@ if __name__ == '__main__':
                         
                         if area > max_bl_area:
                             max_bl_area = area
-                            quadColours[2] = colCodes[i]
+                            quadColours[2] = i
                         
                         #print(area)
                             
@@ -209,13 +277,24 @@ if __name__ == '__main__':
                         
                         if area > max_br_area:
                             max_br_area = area
-                            quadColours[3] = colCodes[i]
+                            quadColours[3] = i
                         
                         #print(area)
             
             faceColours[curFace] = quadColours.copy()
-
-
+        
+        else:
+            k = readkey()
+            
+            if k == "u":
+                rotateCube("u", faceColours)
+            elif k == "r":
+                rotateCube("r", faceColours)
+            elif k == "f":
+                rotateCube("f", faceColours)
+            
+            
+            
         img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
         img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
         img = cv2.rectangle(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[2], ROI_tr[3]), (0, 255, 255), 4)
@@ -224,10 +303,10 @@ if __name__ == '__main__':
         for faceNum in range(min(curFace+1, 6)):
             for quadNum in range(4):
                 face = faceDisplay[faceNum][quadNum]
-                colour = faceColours[faceNum][quadNum]
+                index = faceColours[faceNum][quadNum]
                 
                 
-                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), colour, -1)
+                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), colCodes[index], -1)
                 img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), (0, 0, 0), 1)
          
         #print(faceColours)
