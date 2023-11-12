@@ -4,6 +4,7 @@ from picamera2 import Picamera2
 import time
 import numpy as np
 from readchar import readkey, key
+import statistics
 
 def createFace(x, y, width):
     ROI = [x, y, x + width, y + width]
@@ -22,72 +23,217 @@ def createFace(x, y, width):
     
     return ROI
 
-def rotateCube(move, faces):
-    if move == "r":
-        face_num = 2
-        f = [1, 5, 3, 4]
-        p1_index = 1
-        p2_index = 3
-        
-        temp1 = faces[1][p1_index]
-        temp2 = faces[1][p2_index]
-        
-        faces[1][p1_index] = faces[5][p1_index]
-        faces[1][p2_index] = faces[5][p2_index]
-        
-        faces[5][p1_index] = faces[3][2]
-        faces[5][p2_index] = faces[3][0]
-        
-        faces[3][2] = faces[4][p1_index]
-        faces[3][0] = faces[4][p2_index]
-        
-        faces[4][p1_index] = temp1
-        faces[4][p2_index] = temp2
-        
-    if move == "u":
+def rotateCube(move, faces, times):
+    for i in times: 
+        if move == "r":
+            face_nums = [2]
+            f = [1, 5, 3, 4]
+            p1_index = 1
+            p2_index = 3
+            
+            temp1 = faces[1][p1_index]
+            temp2 = faces[1][p2_index]
+            
+            faces[1][p1_index] = faces[5][p1_index]
+            faces[1][p2_index] = faces[5][p2_index]
+            
+            faces[5][p1_index] = faces[3][2]
+            faces[5][p2_index] = faces[3][0]
+            
+            faces[3][2] = faces[4][p1_index]
+            faces[3][0] = faces[4][p2_index]
+            
+            faces[4][p1_index] = temp1
+            faces[4][p2_index] = temp2
+            
+        if move == "u":
 
-        face_num = 4
-        f = [1, 2, 3, 0]
-        p1_index = 0
-        p2_index = 1
+            face_nums = [4]
+            f = [1, 2, 3, 0]
+            p1_index = 0
+            p2_index = 1
+            
+            p1 = faces[f[0]][p1_index]
+            p2 = faces[f[0]][p2_index]
+            
+            for i in range(3):
+                faces[f[i]][p1_index] = faces[f[i+1]][p1_index]
+                faces[f[i]][p2_index] = faces[f[i+1]][p2_index]
+            
+            faces[f[3]][p1_index] = p1
+            faces[f[3]][p2_index] = p2
         
-        p1 = faces[f[0]][p1_index]
-        p2 = faces[f[0]][p2_index]
-        
-        for i in range(3):
-            faces[f[i]][p1_index] = faces[f[i+1]][p1_index]
-            faces[f[i]][p2_index] = faces[f[i+1]][p2_index]
-        
-        faces[f[3]][p1_index] = p1
-        faces[f[3]][p2_index] = p2
+        if move == "U":
+            face_nums = [4, 5]
+            f = [1, 2, 3, 0]
+            
+            p = faces[f[0]]
+            
+            for i in range(3):
+                faces[f[i]] = faces[f[i+1]]
+            
+            faces[f[3]] = p
+            
 
-    
-    if move == "f":
-        face_num = 1
         
-        temp1 = faces[4][2]
-        temp2 = faces[4][3]
-        
-        faces[4][2] = faces[0][3]
-        faces[4][3] = faces[0][1]
-        
-        faces[0][3] = faces[5][1]
-        faces[0][1] = faces[5][0]
-        
-        faces[5][1] = faces[2][0]
-        faces[5][0] = faces[2][2]
-        
-        faces[2][0] = temp1
-        faces[2][2] = temp2
-        
-    temp = faces[face_num][2]
-    
-    faces[face_num][2] = faces[face_num][3]
-    faces[face_num][3] = faces[face_num][1]
-    faces[face_num][1] = faces[face_num][0]
-    faces[face_num][0] = temp
+        if move == "f":
+            face_nums = [1]
+            
+            temp1 = faces[4][2]
+            temp2 = faces[4][3]
+            
+            faces[4][2] = faces[0][3]
+            faces[4][3] = faces[0][1]
+            
+            faces[0][3] = faces[5][1]
+            faces[0][1] = faces[5][0]
+            
+            faces[5][1] = faces[2][0]
+            faces[5][0] = faces[2][2]
+            
+            faces[2][0] = temp1
+            faces[2][2] = temp2
+            
+        for face_num in face_nums: 
+            temp = faces[face_num][2]
+            
+            faces[face_num][2] = faces[face_num][3]
+            faces[face_num][3] = faces[face_num][1]
+            faces[face_num][1] = faces[face_num][0]
+            faces[face_num][0] = temp
 
     return faces
+
+def solveFirstFace(faces):
+    moves = []
+    
+    b_face = faces[5]
+    
+    col = mode(b_face)
+    
+    if b_face.count(col) == 4:
+        return faces, moves
+    elif b_face.count(col) == 3:
+        
+        if b_face[0] != col:
+            
+            moves = 1
+            moves.append("U")
+            
+        if b_face[2] != col:
+            
+            moves = 2
+            moves.append("U2")
+            
+        if b_face[3] != col:
+            
+            moves = 3
+            moves.append("U3")
+        
+        rotateCube("U", faces, moves)
+        
+        face = 0
+        quad = 0
+            
+        for i in range(5):
+            quad = faces[i].find(col)
+            
+            if quad != -1:
+                face = i
+                break
+        
+        if face == 4:
+            if quad == 0:
+                moves = 3
+                moves.append("u3")
+            elif quad == 1:
+                moves = 2
+                moves.append("u2")
+            elif quad == 3:
+                moves = 1
+                moves.append("u")
+            
+            rotateCube("u", faces, moves)
+            
+            rotateCube("r", faces, 2)
+            rotateCube("u", faces, 3)
+            rotateCube("r", faces, 2)
+            
+            moves.append("r2")
+            moves.append("u3")
+            moves.append("r2")
+        
+        elif quad == 1:
+            if face == 1:
+                moves = 1
+                moves.append("u")
+            elif face == 2:
+                moves = 2
+                moves.append("u2")
+            elif face == 3:
+                moves = 3:
+                moves.append("u3")
+            
+            rotateCube("u", faces, moves)
+            
+            rotateCube("r", faces, 1)
+            rotateCube("u", faces, 3)
+            rotateCube("r", faces, 3)
+            
+            moves.append("r")
+            moves.append("u3")
+            moves.append("r3")
+        
+        elif quad == 0:
+            if face == 1:
+                moves = 3
+                moves.append("u3")
+            elif face == 0:
+                moves = 2
+                moves.append("u2")
+            elif face == 3:
+                moves = 1:
+                moves.append("u")
+            
+            rotateCube("u", faces, moves)
+            
+            rotateCube("r", faces, 1)
+            rotateCube("u", faces, 1)
+            rotateCube("r", faces, 3)
+            
+            moves.append("r")
+            moves.append("u")
+            moves.append("r3")
+        
+        elif quad == 2:
+            
+            rotateCube("f", faces, 3)
+            rotateCube("u", faces, 3)
+            rotateCube("f", faces, 3)
+            rotateCube("u", faces, 1)
+            rotateCube("f", faces, 2)
+   
+            moves.append(["f3", "u3", "f3", "u", "f2"])
+        
+        elif quad == 3:
+            
+            rotateCube("r", faces, 1)
+            rotateCube("u", faces, 1)
+            rotateCube("r", faces, 1)
+            rotateCube("u", faces, 3)
+            rotateCube("r", faces, 2)
+   
+            moves.append(["r", "u", "r", "u3", "r2"])
+            
+            
+            
+            
+            
+            
+        
+        
+        
+    
 
 ROI_tl = createFace(220, 140, 200)[0]
 ROI_tr = createFace(220, 140, 200)[1]
