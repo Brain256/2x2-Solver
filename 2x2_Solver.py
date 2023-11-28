@@ -1,10 +1,8 @@
 #import necessary libraries
 import cv2
-from picamera2 import Picamera2
 import time
 import numpy as np
-from readchar import readkey, key
-import statistics
+from collections import deque
 
 def createFace(x, y, width):
     ROI = [x, y, x + width, y + width]
@@ -24,8 +22,11 @@ def createFace(x, y, width):
     return ROI
 
 def rotateCube(move, faces, times):
-    for i in times: 
-        if move == "r":
+
+    faces = [face.copy() for face in faces]
+
+    for i in range(times): 
+        if move == "R":
             face_nums = [2]
             f = [1, 5, 3, 4]
             p1_index = 1
@@ -46,7 +47,7 @@ def rotateCube(move, faces, times):
             faces[4][p1_index] = temp1
             faces[4][p2_index] = temp2
             
-        if move == "u":
+        if move == "U":
 
             face_nums = [4]
             f = [1, 2, 3, 0]
@@ -63,20 +64,7 @@ def rotateCube(move, faces, times):
             faces[f[3]][p1_index] = p1
             faces[f[3]][p2_index] = p2
         
-        if move == "U":
-            face_nums = [4, 5]
-            f = [1, 2, 3, 0]
-            
-            p = faces[f[0]]
-            
-            for i in range(3):
-                faces[f[i]] = faces[f[i+1]]
-            
-            faces[f[3]] = p
-            
-
-        
-        if move == "f":
+        if move == "F":
             face_nums = [1]
             
             temp1 = faces[4][2]
@@ -93,146 +81,303 @@ def rotateCube(move, faces, times):
             
             faces[2][0] = temp1
             faces[2][2] = temp2
+
+        if move == "X": 
+            face_nums = [0, 2]
+            
+            f = [1, 5, 3, 4]
+            
+            p = faces[f[0]].copy()
+            
+            for i in range(3):
+                if i == 2: 
+                    faces[3][0] = faces[4][3]
+                    faces[3][1] = faces[4][2]
+                    faces[3][2] = faces[4][1]
+                    faces[3][3] = faces[4][0]
+                elif i + 1 == 2: 
+                    faces[5][0] = faces[3][3]
+                    faces[5][1] = faces[3][2]
+                    faces[5][2] = faces[3][1]
+                    faces[5][3] = faces[3][0]
+                    
+                else: 
+                    faces[f[i]] = faces[f[i+1]].copy()
+            
+            faces[f[3]] = p
+
+        if move == "Y": 
+            face_nums = [4, 5]
+
+            f = [1, 2, 3, 0]
+            
+            p = faces[f[0]].copy()
+            
+            for i in range(3):
+                faces[f[i]] = faces[f[i+1]]
+            
+            faces[f[3]] = p
+
+        if move == "Z": 
+            face_nums = [1, 3]
+            
+            f = [2, 4, 0, 5]
+            
+            p = faces[f[0]].copy()
+
+            for i in range(3):
+                faces[f[i]][0] = faces[f[i+1]][2]
+                faces[f[i]][1] = faces[f[i+1]][0]
+                faces[f[i]][2] = faces[f[i+1]][3]
+                faces[f[i]][3] = faces[f[i+1]][1]
+
+            faces[f[3]][0] = p[2]
+            faces[f[3]][1] = p[0]
+            faces[f[3]][2] = p[3]
+            faces[f[3]][3] = p[1]
+
             
         for face_num in face_nums: 
-            temp = faces[face_num][2]
-            
-            faces[face_num][2] = faces[face_num][3]
-            faces[face_num][3] = faces[face_num][1]
-            faces[face_num][1] = faces[face_num][0]
-            faces[face_num][0] = temp
+            if face_num == 3 or face_num == 0: 
+                temp = faces[face_num][2]
+                
+                faces[face_num][2] = faces[face_num][0]
+                faces[face_num][0] = faces[face_num][1]
+                faces[face_num][1] = faces[face_num][3]
+                faces[face_num][3] = temp
+
+            else: 
+                temp = faces[face_num][2]
+                
+                faces[face_num][2] = faces[face_num][3]
+                faces[face_num][3] = faces[face_num][1]
+                faces[face_num][1] = faces[face_num][0]
+                faces[face_num][0] = temp
 
     return faces
 
-def solveFirstFace(faces):
-    moves = []
+def checkSolvedTB(faces): 
+
+    for i, face in enumerate(faces): 
+        if i == 4 or i == 5: 
+            col = face[0]
+            for piece in face: 
+                if piece != col: 
+                    return False
+
+    return True
+
+def checkSolvedRL(faces): 
+
+    for i, face in enumerate(faces): 
+        if i == 2 or i == 0: 
+            col = face[0]
+            for piece in face: 
+                if piece != col: 
+                    return False
+
+    return True
+
+def checkSolvedFB(faces): 
+
+    for i, face in enumerate(faces): 
+        if i == 3 or i == 1: 
+            col = face[0]
+            for piece in face: 
+                if piece != col: 
+                    return False
+
+    return True
+
+def checkSolved(faces): 
+
+    for i, face in enumerate(faces): 
+            col = face[0]
+            for piece in face: 
+                if piece != col: 
+                    return False
+
+    return True
+
+def scramble(move_list, faces): 
+
+    for move in move_list: 
+        
+        faces = rotateCube(move[0], faces, int(move[1]))
+
+    return faces
+
+def process(move_list): 
+
+    for i in range(len(move_list)): 
+
+        if len(move_list[i]) == 1: 
+            move_list[i] += "1"
+
+        if move_list[i][1] == "'": 
+            move_list[i] = move_list[i][0] + "3"
+
+
+def solveTB(queue):
+
+    while len(queue) > 0:
+        
+        cur = queue.popleft()
+        move_list = cur[0]
+        faces = cur[1]
+
+        #print(queue)
+
+        if len(move_list) > 11:
+            break
+
+        print(move_list)
+        
+        faces = rotateCube(move_list[-1][0], faces, int(move_list[-1][1]))
+        #print(faces)
+        
+        if checkSolved(faces) or checkSolvedTB(faces) or checkSolvedRL(faces) or checkSolvedFB(faces): 
+            return move_list, faces
+
+        for move in moves:
+            for i in range(3):
+                moveTemp = move_list.copy()
+                if move != move_list[-1][0]:
+                    moveTemp.append(move + str(i+1))
+                    
+                    queue.append([moveTemp, faces])
+
+    return []
+
+def solvePBL(result, cube): 
+    if checkSolvedRL(cube): 
+        #orient cube so solved faces are on top and bottom
+        result.append("Z1")
+        cube = rotateCube("Z", cube, 1)
     
-    b_face = faces[5]
+    elif checkSolvedFB(cube):
+        #orient cube so solved faces are on top and bottom
+        result.append("X1")
+        cube = rotateCube("X", cube, 1)
+
+    algorithm = []
+    #both layers solved
+    if (cube[0][2] == cube[0][3] and cube[1][2] == cube[1][3] and cube[2][2] == cube[2][3] and cube[3][2] == cube[3][3]) and (cube[0][0] == cube[0][1] and cube[1][0] == cube[1][1] and cube[2][0] == cube[2][1] and cube[3][0] == cube[3][1]): 
+        pass
+    #bottom layer solved
+    elif cube[0][2] == cube[0][3] and cube[1][2] == cube[1][3] and cube[2][2] == cube[2][3] and cube[3][2] == cube[3][3]: 
+        #bar on top layer
+        if cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]:
+            
+            if cube[1][0] == cube[1][1]: 
+                result.append("Y1")
+                cube = rotateCube("Y", cube, 1)
+            elif cube[2][0] == cube[2][1]:
+                result.append("Y2")
+                cube = rotateCube("Y", cube, 2)
+            elif cube[3][0] == cube[3][1]: 
+                result.append("Y3")
+                cube = rotateCube("Y", cube, 3)
+
+            algorithm = "R U R' U' R' F R2 U' R' U' R U R' F'".split()
+        else:
+            algorithm = "F R U' R' U' R U R' F' R U R' U' R' F R F'".split()
+
+    #top layer solved
+    elif cube[0][0] == cube[0][1] and cube[1][0] == cube[1][1] and cube[2][0] == cube[2][1] and cube[3][0] == cube[3][1]: 
+        #bar on bottom layer
+        if cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]:
+            if cube[1][2] == cube[1][3]: 
+                result.append("Y1")
+                cube = rotateCube("Y", cube, 1)
+            elif cube[2][2] == cube[2][3]:
+                result.append("Y2")
+                cube = rotateCube("Y", cube, 2)
+            elif cube[3][2] == cube[3][3]: 
+                result.append("Y3")
+                cube = rotateCube("Y", cube, 3)
+
+            algorithm = "R' U R' U' R' F R2 U' R' U' R U R' F' R2".split()
+        else:
+            result.append("X2")
+            cube = rotateCube("X", cube, 2)
+
+            algorithm = "F R U' R' U' R U R' F' R U R' U' R' F R F'".split()
+    #bars on both layers
+    elif (cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]) and (cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]): 
+        if cube[0][2] == cube[0][3]: 
+            result.append("Y3")
+            cube = rotateCube("Y", cube, 3)
+        elif cube[2][2] == cube[2][3]:
+            result.append("Y1")
+            cube = rotateCube("Y", cube, 1)
+        elif cube[3][2] == cube[3][3]: 
+            result.append("Y2")
+            cube = rotateCube("Y", cube, 2)
+
+        if cube[0][0] == cube[0][1]: 
+            result.append("U3")
+            cube = rotateCube("U", cube, 3)
+        elif cube[2][0] == cube[2][1]:
+            result.append("U1")
+            cube = rotateCube("U", cube, 1)
+        elif cube[3][0] == cube[3][1]: 
+            result.append("U2")
+            cube = rotateCube("U", cube, 2)
+        
+        algorithm = "R2 U' F2 U2 R2 U' F2".split()
+
+    #bar on bottom layer
+    elif cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]: 
+        result.append("Z2")
+        cube = rotateCube("Z", cube, 2)
+
+        if cube[0][0] == cube[0][1]: 
+            result.append("Y3")
+            cube = rotateCube("Y", cube, 3)
+        elif cube[2][0] == cube[2][1]:
+            result.append("Y1")
+            cube = rotateCube("Y", cube, 1)
+        elif cube[3][0] == cube[3][1]: 
+            result.append("Y2")
+            cube = rotateCube("Y", cube, 2)
+        
+        algorithm = "R U' R F2 R' U R'".split()
+
+    #bar on top layer
+    elif cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]: 
+        if cube[0][0] == cube[0][1]: 
+            result.append("Y3")
+            cube = rotateCube("Y", cube, 3)
+        elif cube[2][0] == cube[2][1]:
+            result.append("Y1")
+            cube = rotateCube("Y", cube, 1)
+        elif cube[3][0] == cube[3][1]: 
+            result.append("Y2")
+            cube = rotateCube("Y", cube, 2)
+        
+        algorithm = "R U' R F2 R' U R'".split()
+
+    else: 
+        algorithm = "R2 F2 R2".split()
+
+    process(algorithm)
+    cube = scramble(algorithm, cube)
+    result.extend(algorithm)
+
+    #auf
+    if not checkSolved(cube): 
+        if cube[1][0] == cube[0][2]:
+            result.append("U1")
+            cube = rotateCube("U", cube, 1)
+        elif cube[2][0] == cube[0][2]: 
+            result.append("U2")
+            cube = rotateCube("U", cube, 2)
+        elif cube[3][0] == cube[0][2]: 
+            result.append("U3")
+            cube = rotateCube("U", cube, 3)
     
-    col = mode(b_face)
-    
-    if b_face.count(col) == 4:
-        return faces, moves
-    elif b_face.count(col) == 3:
-        
-        if b_face[0] != col:
-            
-            moves = 1
-            moves.append("U")
-            
-        if b_face[2] != col:
-            
-            moves = 2
-            moves.append("U2")
-            
-        if b_face[3] != col:
-            
-            moves = 3
-            moves.append("U3")
-        
-        rotateCube("U", faces, moves)
-        
-        face = 0
-        quad = 0
-            
-        for i in range(5):
-            quad = faces[i].find(col)
-            
-            if quad != -1:
-                face = i
-                break
-        
-        if face == 4:
-            if quad == 0:
-                moves = 3
-                moves.append("u3")
-            elif quad == 1:
-                moves = 2
-                moves.append("u2")
-            elif quad == 3:
-                moves = 1
-                moves.append("u")
-            
-            rotateCube("u", faces, moves)
-            
-            rotateCube("r", faces, 2)
-            rotateCube("u", faces, 3)
-            rotateCube("r", faces, 2)
-            
-            moves.append("r2")
-            moves.append("u3")
-            moves.append("r2")
-        
-        elif quad == 1:
-            if face == 1:
-                moves = 1
-                moves.append("u")
-            elif face == 2:
-                moves = 2
-                moves.append("u2")
-            elif face == 3:
-                moves = 3:
-                moves.append("u3")
-            
-            rotateCube("u", faces, moves)
-            
-            rotateCube("r", faces, 1)
-            rotateCube("u", faces, 3)
-            rotateCube("r", faces, 3)
-            
-            moves.append("r")
-            moves.append("u3")
-            moves.append("r3")
-        
-        elif quad == 0:
-            if face == 1:
-                moves = 3
-                moves.append("u3")
-            elif face == 0:
-                moves = 2
-                moves.append("u2")
-            elif face == 3:
-                moves = 1:
-                moves.append("u")
-            
-            rotateCube("u", faces, moves)
-            
-            rotateCube("r", faces, 1)
-            rotateCube("u", faces, 1)
-            rotateCube("r", faces, 3)
-            
-            moves.append("r")
-            moves.append("u")
-            moves.append("r3")
-        
-        elif quad == 2:
-            
-            rotateCube("f", faces, 3)
-            rotateCube("u", faces, 3)
-            rotateCube("f", faces, 3)
-            rotateCube("u", faces, 1)
-            rotateCube("f", faces, 2)
-   
-            moves.append(["f3", "u3", "f3", "u", "f2"])
-        
-        elif quad == 3:
-            
-            rotateCube("r", faces, 1)
-            rotateCube("u", faces, 1)
-            rotateCube("r", faces, 1)
-            rotateCube("u", faces, 3)
-            rotateCube("r", faces, 2)
-   
-            moves.append(["r", "u", "r", "u3", "r2"])
-            
-            
-            
-            
-            
-            
-        
-        
-        
+moves = ["R", "U", "F"]
     
 
 ROI_tl = createFace(220, 140, 200)[0]
@@ -268,202 +413,218 @@ colCodes = [
 #0 for orange, 1 for red, 2 for green, 3 for blue, 4 for white, 5 for yellow
 quadColours = [0, 0, 0, 0]
 
+for i in range(6): 
+    faceColours[i] = quadColours.copy()
+
 startTime = time.time()
 curTime = time.time()
 
-if __name__ == '__main__':
+#initialize camera
+picam2 = Picamera2()
+picam2.preview_configuration.main.size = (640,480)
+picam2.preview_configuration.main.format = "RGB888"
+picam2.preview_configuration.controls.FrameRate = 30
+picam2.preview_configuration.align()
+picam2.configure("preview")
+picam2.start()
 
-    #initialize camera
-    picam2 = Picamera2()
-    picam2.preview_configuration.main.size = (640,480)
-    picam2.preview_configuration.main.format = "RGB888"
-    picam2.preview_configuration.controls.FrameRate = 30
-    picam2.preview_configuration.align()
-    picam2.configure("preview")
-    picam2.start()
-
-    #main loop
-    while True:
-        #get an image from pi camera
-        img = picam2.capture_array()
+#main loop
+while True:
     
-        curTime = time.time()
-            
-        if curTime - startTime > 5:
-            if curFace != 6:
-                curFace += 1
-                startTime = time.time()
-        
-        if curFace != 6: 
-        
-            # convert from BGR to HSV
-            img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            
-            # orange mask
-            lower_orange = np.array([0, 220, 200])
-            upper_orange = np.array([17, 255, 255])
+    #get an image from pi camera
+    img = picam2.capture_array()
 
-            o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
-            
-            #create red mask
-            lower_red = np.array([165, 60, 200])
-            upper_red = np.array([180, 255, 255])
-          
-            r_mask = cv2.inRange(img_hsv, lower_red, upper_red)
-            
-            #create green mask
-            lower_green = np.array([40, 0, 200])
-            upper_green = np.array([58, 255, 255])
+    if cv2.waitKey(1)==ord('q'):
+            break
 
-            g_mask = cv2.inRange(img_hsv, lower_green, upper_green)
-            
-            #create blue mask
-            lower_blue = np.array([89, 60, 200])
-            upper_blue = np.array([100, 255, 255])
+    curTime = time.time()
+        
+    if curTime - startTime > 5:
+        if curFace != 6:
+            curFace += 1
+            startTime = time.time()
+    
+    if curFace != 6: 
+    
+        # convert from BGR to HSV
+        img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        
+        # orange mask
+        lower_orange = np.array([0, 220, 200])
+        upper_orange = np.array([17, 255, 255])
 
-            b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
-            
-            #create white mask
-            lower_white = np.array([0, 0, 200])
-            upper_white = np.array([180, 35, 255])
+        o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
+        
+        #create red mask
+        lower_red = np.array([165, 60, 200])
+        upper_red = np.array([180, 255, 255])
+        
+        r_mask = cv2.inRange(img_hsv, lower_red, upper_red)
+        
+        #create green mask
+        lower_green = np.array([40, 0, 200])
+        upper_green = np.array([58, 255, 255])
 
-            w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
-            
-            #create yellow mask
-            lower_yellow = np.array([28, 240, 160])
-            upper_yellow = np.array([34, 255, 255])
+        g_mask = cv2.inRange(img_hsv, lower_green, upper_green)
+        
+        #create blue mask
+        lower_blue = np.array([89, 60, 200])
+        upper_blue = np.array([100, 255, 255])
 
-            y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
-            
-            #ORANGE
-            o_cont_tl = cv2.findContours(o_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            o_cont_tr = cv2.findContours(o_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            o_cont_bl = cv2.findContours(o_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            o_cont_br = cv2.findContours(o_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            #RED
-            r_cont_tl = cv2.findContours(r_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            r_cont_tr = cv2.findContours(r_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            r_cont_bl = cv2.findContours(r_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            r_cont_br = cv2.findContours(r_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            #GREEN
-            g_cont_tl = cv2.findContours(g_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            g_cont_tr = cv2.findContours(g_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            g_cont_bl = cv2.findContours(g_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            g_cont_br = cv2.findContours(g_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            #BLUE
-            b_cont_tl = cv2.findContours(b_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            b_cont_tr = cv2.findContours(b_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            b_cont_bl = cv2.findContours(b_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            b_cont_br = cv2.findContours(b_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            #WHITE
-            w_cont_tl = cv2.findContours(w_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            w_cont_tr = cv2.findContours(w_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            w_cont_bl = cv2.findContours(w_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            w_cont_br = cv2.findContours(w_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            #YELLOW
-            y_cont_tl = cv2.findContours(y_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            y_cont_tr = cv2.findContours(y_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            y_cont_bl = cv2.findContours(y_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            y_cont_br = cv2.findContours(y_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-            
-            tl = [o_cont_tl, r_cont_tl, g_cont_tl, b_cont_tl, w_cont_tl, y_cont_tl]
-            tr = [o_cont_tr, r_cont_tr, g_cont_tr, b_cont_tr, w_cont_tr, y_cont_tr]
-            bl = [o_cont_bl, r_cont_bl, g_cont_bl, b_cont_bl, w_cont_bl, y_cont_bl]
-            br = [o_cont_br, r_cont_br, g_cont_br, b_cont_br, w_cont_br, y_cont_br]
-            
-            max_tl_area = 0
-            max_tr_area = 0
-            max_bl_area = 0
-            max_br_area = 0
-            
-            
-            
-            for i in range(len(tl)):
-                if tl[i]:
-                    for cont in tl[i]:
-                        area = cv2.contourArea(cont)
-                        
-                        if area > max_tl_area:
-                            max_tl_area = area
-                            quadColours[0] = i
-                        
-                        #print(area)
-                            
-            for i in range(len(tr)):
-                if tr[i]:
-                    for cont in tr[i]:
-                        area = cv2.contourArea(cont)
-                        
-                        if area > max_tr_area:
-                            max_tr_area = area
-                            quadColours[1] = i
-                        
-                        #print(area)
-            
-            for i in range(len(bl)):
-                if bl[i]:
-                    for cont in bl[i]:
-                        area = cv2.contourArea(cont)
-                        
-                        if area > max_bl_area:
-                            max_bl_area = area
-                            quadColours[2] = i
-                        
-                        #print(area)
-                            
-            for i in range(len(br)):
-                if br[i]:
-                    for cont in br[i]:
-                        area = cv2.contourArea(cont)
-                        
-                        if area > max_br_area:
-                            max_br_area = area
-                            quadColours[3] = i
-                        
-                        #print(area)
-            
-            faceColours[curFace] = quadColours.copy()
+        b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
         
-        else:
-            k = readkey()
-            
-            if k == "u":
-                rotateCube("u", faceColours)
-            elif k == "r":
-                rotateCube("r", faceColours)
-            elif k == "f":
-                rotateCube("f", faceColours)
-            
-            
-            
-        img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
-        img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
-        img = cv2.rectangle(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[2], ROI_tr[3]), (0, 255, 255), 4)
-        img = cv2.rectangle(img, (ROI_br[0], ROI_br[1]), (ROI_br[2], ROI_br[3]), (0, 255, 255), 4)
+        #create white mask
+        lower_white = np.array([0, 0, 200])
+        upper_white = np.array([180, 35, 255])
+
+        w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
-        for faceNum in range(min(curFace+1, 6)):
-            for quadNum in range(4):
-                face = faceDisplay[faceNum][quadNum]
-                index = faceColours[faceNum][quadNum]
-                
-                
-                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), colCodes[index], -1)
-                img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), (0, 0, 0), 1)
-         
-        #print(faceColours)
-        #print(curFace)
-        #print(faceColours[curFace])
-        #print(quadColours)
-        cv2.imshow("image", img)
+        #create yellow mask
+        lower_yellow = np.array([28, 240, 160])
+        upper_yellow = np.array([34, 255, 255])
+
+        y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
+        
+        #ORANGE
+        o_cont_tl = cv2.findContours(o_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        o_cont_tr = cv2.findContours(o_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        o_cont_bl = cv2.findContours(o_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        o_cont_br = cv2.findContours(o_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        #RED
+        r_cont_tl = cv2.findContours(r_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        r_cont_tr = cv2.findContours(r_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        r_cont_bl = cv2.findContours(r_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        r_cont_br = cv2.findContours(r_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        #GREEN
+        g_cont_tl = cv2.findContours(g_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        g_cont_tr = cv2.findContours(g_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        g_cont_bl = cv2.findContours(g_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        g_cont_br = cv2.findContours(g_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        #BLUE
+        b_cont_tl = cv2.findContours(b_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        b_cont_tr = cv2.findContours(b_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        b_cont_bl = cv2.findContours(b_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        b_cont_br = cv2.findContours(b_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        #WHITE
+        w_cont_tl = cv2.findContours(w_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        w_cont_tr = cv2.findContours(w_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        w_cont_bl = cv2.findContours(w_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        w_cont_br = cv2.findContours(w_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        #YELLOW
+        y_cont_tl = cv2.findContours(y_mask[ROI_tl[1]:ROI_tl[3], ROI_tl[0]:ROI_tl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        y_cont_tr = cv2.findContours(y_mask[ROI_tr[1]:ROI_tr[3], ROI_tr[0]:ROI_tr[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        y_cont_bl = cv2.findContours(y_mask[ROI_bl[1]:ROI_bl[3], ROI_bl[0]:ROI_bl[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        y_cont_br = cv2.findContours(y_mask[ROI_br[1]:ROI_br[3], ROI_br[0]:ROI_br[2]], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        
+        tl = [o_cont_tl, r_cont_tl, g_cont_tl, b_cont_tl, w_cont_tl, y_cont_tl]
+        tr = [o_cont_tr, r_cont_tr, g_cont_tr, b_cont_tr, w_cont_tr, y_cont_tr]
+        bl = [o_cont_bl, r_cont_bl, g_cont_bl, b_cont_bl, w_cont_bl, y_cont_bl]
+        br = [o_cont_br, r_cont_br, g_cont_br, b_cont_br, w_cont_br, y_cont_br]
+        
+        max_tl_area = 0
+        max_tr_area = 0
+        max_bl_area = 0
+        max_br_area = 0
+        
+        for i in range(len(tl)):
+            if tl[i]:
+                for cont in tl[i]:
+                    area = cv2.contourArea(cont)
+                    
+                    if area > max_tl_area:
+                        max_tl_area = area
+                        quadColours[0] = i
+                    
+                    #print(area)
+                        
+        for i in range(len(tr)):
+            if tr[i]:
+                for cont in tr[i]:
+                    area = cv2.contourArea(cont)
+                    
+                    if area > max_tr_area:
+                        max_tr_area = area
+                        quadColours[1] = i
+                    
+                    #print(area)
+        
+        for i in range(len(bl)):
+            if bl[i]:
+                for cont in bl[i]:
+                    area = cv2.contourArea(cont)
+                    
+                    if area > max_bl_area:
+                        max_bl_area = area
+                        quadColours[2] = i
+                    
+                    #print(area)
+                        
+        for i in range(len(br)):
+            if br[i]:
+                for cont in br[i]:
+                    area = cv2.contourArea(cont)
+                    
+                    if area > max_br_area:
+                        max_br_area = area
+                        quadColours[3] = i
+                    
+                    #print(area)
+        print("hello")
+        faceColours[curFace] = quadColours.copy()
+        print(faceColours)
+    
+    else:
+        
+        sTime = time.time()
+        queue = deque([])
+
+        result = []
+
+        if checkSolved(faceColours):
+            print("already solved")
+            break
+        elif checkSolvedTB(faceColours) or checkSolvedRL(faceColours) or checkSolvedFB(faceColours): 
+            cube = faceColours
+        else: 
+            for move in moves:
+                for i in range(3):
+                    queue.append([[move + str(i+1)], faceColours])
+
+            result, cube = solveTB(queue)
+
+        solvePBL(result, cube) 
+        #m = solveCube(queue)
+        #print(m)
+
+        print(f"\nmoves: {len(result)}\nsolution: {' '.join(result)}\nfaces: {cube}\ntime: {round(time.time() - sTime, 2)}s\n")
+
+        break
+        
+    img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
+    img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
+    img = cv2.rectangle(img, (ROI_tr[0], ROI_tr[1]), (ROI_tr[2], ROI_tr[3]), (0, 255, 255), 4)
+    img = cv2.rectangle(img, (ROI_br[0], ROI_br[1]), (ROI_br[2], ROI_br[3]), (0, 255, 255), 4)
+    
+    for faceNum in range(min(curFace+1, 6)):
+        for quadNum in range(4):
+            face = faceDisplay[faceNum][quadNum]
+            index = faceColours[faceNum][quadNum]
             
-        if cv2.waitKey(1)==ord('q'):
-                break
+            img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), colCodes[index], -1)
+            img = cv2.rectangle(img, (face[0], face[1]), (face[2], face[3]), (0, 0, 0), 1)
         
+    #print(faceColours)
+    #print(curFace)
+    #print(faceColours[curFace])
+    #print(quadColours)
+    cv2.imshow("image", img)
         
+    if cv2.waitKey(1)==ord('q'):
+            break
         
-    cv2.destroyAllWindows()
+cv2.destroyAllWindows()
