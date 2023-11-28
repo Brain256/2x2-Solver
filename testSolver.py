@@ -81,14 +81,78 @@ def rotateCube(move, faces, times):
             
             faces[2][0] = temp1
             faces[2][2] = temp2
+
+        if move == "X": 
+            face_nums = [0, 2]
+            
+            f = [1, 5, 3, 4]
+            
+            p = faces[f[0]].copy()
+            
+            for i in range(3):
+                if i == 2: 
+                    faces[3][0] = faces[4][3]
+                    faces[3][1] = faces[4][2]
+                    faces[3][2] = faces[4][1]
+                    faces[3][3] = faces[4][0]
+                elif i + 1 == 2: 
+                    faces[5][0] = faces[3][3]
+                    faces[5][1] = faces[3][2]
+                    faces[5][2] = faces[3][1]
+                    faces[5][3] = faces[3][0]
+                    
+                else: 
+                    faces[f[i]] = faces[f[i+1]].copy()
+            
+            faces[f[3]] = p
+
+        if move == "Y": 
+            face_nums = [4, 5]
+
+            f = [1, 2, 3, 0]
+            
+            p = faces[f[0]].copy()
+            
+            for i in range(3):
+                faces[f[i]] = faces[f[i+1]]
+            
+            faces[f[3]] = p
+
+        if move == "Z": 
+            face_nums = [1, 3]
+            
+            f = [2, 4, 0, 5]
+            
+            p = faces[f[0]].copy()
+
+            for i in range(3):
+                faces[f[i]][0] = faces[f[i+1]][2]
+                faces[f[i]][1] = faces[f[i+1]][0]
+                faces[f[i]][2] = faces[f[i+1]][3]
+                faces[f[i]][3] = faces[f[i+1]][1]
+
+            faces[f[3]][0] = p[2]
+            faces[f[3]][1] = p[0]
+            faces[f[3]][2] = p[3]
+            faces[f[3]][3] = p[1]
+
             
         for face_num in face_nums: 
-            temp = faces[face_num][2]
-            
-            faces[face_num][2] = faces[face_num][3]
-            faces[face_num][3] = faces[face_num][1]
-            faces[face_num][1] = faces[face_num][0]
-            faces[face_num][0] = temp
+            if face_num == 3 or face_num == 0: 
+                temp = faces[face_num][2]
+                
+                faces[face_num][2] = faces[face_num][0]
+                faces[face_num][0] = faces[face_num][1]
+                faces[face_num][1] = faces[face_num][3]
+                faces[face_num][3] = temp
+
+            else: 
+                temp = faces[face_num][2]
+                
+                faces[face_num][2] = faces[face_num][3]
+                faces[face_num][3] = faces[face_num][1]
+                faces[face_num][1] = faces[face_num][0]
+                faces[face_num][0] = temp
 
     return faces
 
@@ -138,19 +202,23 @@ def checkSolved(faces):
 def scramble(move_list, faces): 
 
     for move in move_list: 
-
-        if len(move) == 1: 
-            move = move + "1"
-
-        if move[-1] == "'": 
-            faces = rotateCube(move[0], faces, 3)
-            continue
         
         faces = rotateCube(move[0], faces, int(move[1]))
 
     return faces
 
-def solveCube(queue):
+def process(move_list): 
+
+    for i in range(len(move_list)): 
+
+        if len(move_list[i]) == 1: 
+            move_list[i] += "1"
+
+        if move_list[i][1] == "'": 
+            move_list[i] = move_list[i][0] + "3"
+
+
+def solveTB(queue):
 
     while len(queue) > 0:
         
@@ -219,7 +287,8 @@ colCodes = [
 
 sTime = time.time()
 
-m = "U2 F U' R' F R2 U2 F U'".split(" ")
+m = "F' R2 F' U2 R F2 R2 U2 F'".split(" ")
+process(m)
 
 faceColours = scramble(m, faceColours) 
 
@@ -235,63 +304,135 @@ else:
         for i in range(3):
             queue.append([[move + str(i+1)], faceColours])
 
-    result, cube = solveCube(queue)
+    result, cube = solveTB(queue)
 
-    if result: 
-        print(f"moves for solution: {len(result)} \nmoves: {result}\nfaces: {cube}")
-    else:
-        print("no solution")
-
-'''
 if checkSolvedRL(cube): 
     #orient cube so solved faces are on top and bottom
-    pass
+    result.append("Z1")
+    cube = rotateCube("Z", cube, 1)
+    
 elif checkSolvedFB(cube):
     #orient cube so solved faces are on top and bottom
+    result.append("X1")
+    cube = rotateCube("X", cube, 1)
+
+#both layers solved
+if (cube[0][2] == cube[0][3] and cube[1][2] == cube[1][3] and cube[2][2] == cube[2][3] and cube[3][2] == cube[3][3]) and (cube[0][0] == cube[0][1] and cube[1][0] == cube[1][1] and cube[2][0] == cube[2][1] and cube[3][0] == cube[3][1]): 
     pass
+#bottom layer solved
+elif cube[0][2] == cube[0][3] and cube[1][2] == cube[1][3] and cube[2][2] == cube[2][3] and cube[3][2] == cube[3][3]: 
+    #bar on top layer
+    if cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]:
+        
+        if cube[1][0] == cube[1][1]: 
+            result.append("Y1")
+            cube = rotateCube("Y", cube, 1)
+        elif cube[2][0] == cube[2][1]:
+            result.append("Y2")
+            cube = rotateCube("Y", cube, 2)
+        elif cube[3][0] == cube[3][1]: 
+            result.append("Y3")
+            cube = rotateCube("Y", cube, 3)
 
-#5 Ortega PBL Algorithms
+        algorithm = "R U R' U' R' F R2 U' R' U' R U R' F'".split()
+    else:
+        algorithm = "F R U' R' U' R U R' F' R U R' U' R' F R F'".split()
 
-if bottom layer solved
+#top layer solved
+elif cube[0][0] == cube[0][1] and cube[1][0] == cube[1][1] and cube[2][0] == cube[2][1] and cube[3][0] == cube[3][1]: 
+    #bar on bottom layer
+    if cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]:
+        if cube[1][2] == cube[1][3]: 
+            result.append("Y1")
+            cube = rotateCube("Y", cube, 1)
+        elif cube[2][2] == cube[2][3]:
+            result.append("Y2")
+            cube = rotateCube("Y", cube, 2)
+        elif cube[3][2] == cube[3][3]: 
+            result.append("Y3")
+            cube = rotateCube("Y", cube, 3)
 
-    if bar present on top layer
+        algorithm = "R' U R' U' R' F R2 U' R' U' R U R' F' R2".split()
+    else:
+        result.append("X2")
+        cube = rotateCube("X", cube, 2)
 
-        solve for case 1 
+        algorithm = "F R U' R' U' R U R' F' R U R' U' R' F R F'".split()
+#bars on both layers
+elif (cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]) and (cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]): 
+    if cube[0][2] == cube[0][3]: 
+        result.append("Y3")
+        cube = rotateCube("Y", cube, 3)
+    elif cube[2][2] == cube[2][3]:
+        result.append("Y1")
+        cube = rotateCube("Y", cube, 1)
+    elif cube[3][2] == cube[3][3]: 
+        result.append("Y2")
+        cube = rotateCube("Y", cube, 2)
 
-    if no bar present
+    if cube[0][0] == cube[0][1]: 
+        result.append("U3")
+        cube = rotateCube("U", cube, 3)
+    elif cube[2][0] == cube[2][1]:
+        result.append("U1")
+        cube = rotateCube("U", cube, 1)
+    elif cube[3][0] == cube[3][1]: 
+        result.append("U2")
+        cube = rotateCube("U", cube, 2)
+    
+    algorithm = "R2 U' F2 U2 R2 U' F2".split()
 
-        solve for case 2
+#bar on bottom layer
+elif cube[0][2] == cube[0][3] or cube[1][2] == cube[1][3] or cube[2][2] == cube[2][3] or cube[3][2] == cube[3][3]: 
+    result.append("Z2")
+    cube = rotateCube("Z", cube, 2)
 
-elif top layer solved
+    if cube[0][0] == cube[0][1]: 
+        result.append("Y3")
+        cube = rotateCube("Y", cube, 3)
+    elif cube[2][0] == cube[2][1]:
+        result.append("Y1")
+        cube = rotateCube("Y", cube, 1)
+    elif cube[3][0] == cube[3][1]: 
+        result.append("Y2")
+        cube = rotateCube("Y", cube, 2)
+    
+    algorithm = "R U' R F2 R' U R'".split()
 
-    -reorient so that top layer is on bottom
+#bar on top layer
+elif cube[0][0] == cube[0][1] or cube[1][0] == cube[1][1] or cube[2][0] == cube[2][1] or cube[3][0] == cube[3][1]: 
+    if cube[0][0] == cube[0][1]: 
+        result.append("Y3")
+        cube = rotateCube("Y", cube, 3)
+    elif cube[2][0] == cube[2][1]:
+        result.append("Y1")
+        cube = rotateCube("Y", cube, 1)
+    elif cube[3][0] == cube[3][1]: 
+        result.append("Y2")
+        cube = rotateCube("Y", cube, 2)
+    
+    algorithm = "R U' R F2 R' U R'".split()
 
-    if bar present on top layer
+else: 
+    algorithm = "R2 F2 R2".split()
 
-        solve for case 1 
+process(algorithm)
+cube = scramble(algorithm, cube)
+result.extend(algorithm)
 
-    if no bar present
+#auf
+if not checkSolved(cube): 
+    if cube[1][0] == cube[0][2]:
+        result.append("U1")
+        cube = rotateCube("U", cube, 1)
+    elif cube[2][0] == cube[0][2]: 
+        result.append("U2")
+        cube = rotateCube("U", cube, 2)
+    elif cube[3][0] == cube[0][2]: 
+        result.append("U3")
+        cube = rotateCube("U", cube, 3)
 
-        solve for case 2
-
-elif 1 bar on both layers
-
-    solve for case 3
-
-elif only 1 bar
-
-    solve for case 4
-
-else
-
-    solve for case 5
-
-'''
-
-
-
-
-print(f"\ntime: {round(time.time() - sTime, 2)}s")
+print(f"\nmoves: {len(result)}\nsolution: {' '.join(result)}\nfaces: {cube}\ntime: {round(time.time() - sTime, 2)}s\n")
     
 #print(faceColours)
 #print(curFace)
