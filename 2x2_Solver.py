@@ -1,5 +1,6 @@
 #import necessary libraries
 import cv2
+from picamera2 import Picamera2
 import time
 import numpy as np
 from collections import deque
@@ -377,6 +378,8 @@ def solvePBL(result, cube):
             result.append("U3")
             cube = rotateCube("U", cube, 3)
     
+    print(cube)
+    
 moves = ["R", "U", "F"]
     
 
@@ -574,9 +577,8 @@ while True:
                         quadColours[3] = i
                     
                     #print(area)
-        print("hello")
+
         faceColours[curFace] = quadColours.copy()
-        print(faceColours)
     
     else:
         
@@ -584,7 +586,9 @@ while True:
         queue = deque([])
 
         result = []
-
+        
+        print("before:", faceColours)
+        
         if checkSolved(faceColours):
             print("already solved")
             break
