@@ -1,6 +1,5 @@
 #import necessary libraries
 import cv2
-from picamera2 import Picamera2
 import time
 import numpy as np
 from collections import deque
@@ -232,7 +231,7 @@ def solveTB(queue):
         if len(move_list) > 11:
             break
 
-        print(move_list)
+        #print(move_list)
         
         faces = rotateCube(move_list[-1][0], faces, int(move_list[-1][1]))
         #print(faces)
@@ -377,8 +376,8 @@ def solvePBL(result, cube):
         elif cube[3][0] == cube[0][2]: 
             result.append("U3")
             cube = rotateCube("U", cube, 3)
-    
-    print(cube)
+
+    return cube
     
 moves = ["R", "U", "F"]
     
@@ -419,26 +418,24 @@ quadColours = [0, 0, 0, 0]
 for i in range(6): 
     faceColours[i] = quadColours.copy()
 
-startTime = time.time()
+startTime = 0
 curTime = time.time()
 
-#initialize camera
-picam2 = Picamera2()
-picam2.preview_configuration.main.size = (640,480)
-picam2.preview_configuration.main.format = "RGB888"
-picam2.preview_configuration.controls.FrameRate = 30
-picam2.preview_configuration.align()
-picam2.configure("preview")
-picam2.start()
+cam = cv2.VideoCapture(0)
+
+beginTime = False
+sGenerated = False
+result = []
 
 #main loop
 while True:
     
     #get an image from pi camera
-    img = picam2.capture_array()
+    res, img = cam.read()
 
-    if cv2.waitKey(1)==ord('q'):
-            break
+    if not beginTime: 
+        startTime = time.time()
+        beginTime = True 
 
     curTime = time.time()
         
@@ -453,38 +450,38 @@ while True:
         img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
         # orange mask
-        lower_orange = np.array([0, 220, 200])
-        upper_orange = np.array([17, 255, 255])
+        lower_orange = np.array([6, 180, 172])
+        upper_orange = np.array([18, 255, 255])
 
         o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
         
         #create red mask
-        lower_red = np.array([165, 60, 200])
-        upper_red = np.array([180, 255, 255])
+        lower_red = np.array([0, 160, 200])
+        upper_red = np.array([6, 255, 255])
         
         r_mask = cv2.inRange(img_hsv, lower_red, upper_red)
         
         #create green mask
-        lower_green = np.array([40, 0, 200])
-        upper_green = np.array([58, 255, 255])
+        lower_green = np.array([50, 100, 120])
+        upper_green = np.array([73, 255, 255])
 
         g_mask = cv2.inRange(img_hsv, lower_green, upper_green)
         
         #create blue mask
-        lower_blue = np.array([89, 60, 200])
-        upper_blue = np.array([100, 255, 255])
+        lower_blue = np.array([92, 120, 110])
+        upper_blue = np.array([103, 255, 255])
 
         b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
         
         #create white mask
-        lower_white = np.array([0, 0, 200])
-        upper_white = np.array([180, 35, 255])
+        lower_white = np.array([0, 0, 168])
+        upper_white = np.array([180, 57, 224])
 
         w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
         #create yellow mask
-        lower_yellow = np.array([28, 240, 160])
-        upper_yellow = np.array([34, 255, 255])
+        lower_yellow = np.array([24, 100, 160])
+        upper_yellow = np.array([36, 255, 255])
 
         y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
         
@@ -579,19 +576,18 @@ while True:
                     #print(area)
 
         faceColours[curFace] = quadColours.copy()
+
     
-    else:
+    elif sGenerated == False:
         
         sTime = time.time()
         queue = deque([])
 
-        result = []
-        
-        print("before:", faceColours)
-        
         if checkSolved(faceColours):
             print("already solved")
-            break
+            sGenerated = True
+            continue
+
         elif checkSolvedTB(faceColours) or checkSolvedRL(faceColours) or checkSolvedFB(faceColours): 
             cube = faceColours
         else: 
@@ -601,13 +597,18 @@ while True:
 
             result, cube = solveTB(queue)
 
-        solvePBL(result, cube) 
+        cube = solvePBL(result, cube) 
         #m = solveCube(queue)
         #print(m)
 
         print(f"\nmoves: {len(result)}\nsolution: {' '.join(result)}\nfaces: {cube}\ntime: {round(time.time() - sTime, 2)}s\n")
 
-        break
+        sGenerated = True
+
+    
+    #if sGenerated: 
+
+
         
     img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
     img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
