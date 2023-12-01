@@ -456,7 +456,7 @@ while True:
         o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
         
         #create red mask
-        lower_red = np.array([0, 160, 200])
+        lower_red = np.array([0, 160, 155])
         upper_red = np.array([6, 255, 255])
         
         r_mask = cv2.inRange(img_hsv, lower_red, upper_red)
