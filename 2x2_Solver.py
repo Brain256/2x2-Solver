@@ -378,6 +378,47 @@ def solvePBL(result, cube):
             cube = rotateCube("U", cube, 3)
 
     return cube
+
+def parseToMachine(moveList): #turns the generated solution into a solution that the robot can use since the robot can only use X, Y and D moves, assumes that the front of the cube is facing the flipper
+    newMoves = []
+
+    for move in moveList: 
+        if move[0] == "R": 
+            newMoves.extend(f"Y3 X1 D{move[1]} X3 Y1".split())
+        elif move[0] == "U": 
+            newMoves.extend(f"D{move[1]} Y{move[1]}".split())
+        elif move[0] == "F": 
+            newMoves.extend(f"X3 D{move[1]} X1".split())
+        elif move[0] == "Z": 
+            newMoves.extend(f"Y3 X{move[1]} Y1".split()) 
+        else: 
+            newMoves.append(move)
+    
+    print(newMoves)
+
+    length = len(newMoves) - 1
+    i = 0
+
+    while i < length:
+        if newMoves[i][0] == newMoves[i+1][0]:
+            num = (int(newMoves[i][1]) + int(newMoves[i+1][1])) % 4
+
+            if num == 0:
+                newMoves.pop(i)
+                newMoves.pop(i)
+                length -= 2
+                i -= 1
+            else:
+                newMoves.pop(i+1)
+                newMoves[i] = newMoves[i][0] + str(num)
+                length -= 1
+                i -= 1
+
+        i += 1
+
+
+    return newMoves
+
     
 moves = ["R", "U", "F"]
     
@@ -598,6 +639,8 @@ while True:
             result, cube = solveTB(queue)
 
         cube = solvePBL(result, cube) 
+
+        result = parseToMachine(result)
         #m = solveCube(queue)
         #print(m)
 
@@ -605,10 +648,7 @@ while True:
 
         sGenerated = True
 
-    
     #if sGenerated: 
-
-
         
     img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
     img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
