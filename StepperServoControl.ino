@@ -1,5 +1,7 @@
-
 #include <Stepper.h>
+#include <Servo.h>
+
+Servo myservo;
 
 const int stepsPerRevolution = 2048;
 
@@ -9,6 +11,9 @@ char move[3];
 
 void setup() {
   Serial.begin(9600);
+
+  myservo.attach(5); 
+  myservo.write(90); 
 
 }
 
@@ -32,7 +37,32 @@ void loop() {
         myStepper.setSpeed(15);
 	      myStepper.step(stepsPerRevolution/4);
       }
+    } else if(move[0] == 'X') {
+
+      for(int i = 0; i < move[1] - '0'; i++) {
+        myservo.write(180); 
+        delay(300); 
+        myservo.write(90); 
+        delay(300);
+      }
+
+    } else if(move[0] == 'Y') {
+      myservo.write(0);
+
+      if(move[1] == '1') {
+        myStepper.setSpeed(15);
+	      myStepper.step(-stepsPerRevolution/4);
+      } else if(move[1] == '2') {
+        myStepper.setSpeed(15);
+	      myStepper.step(-stepsPerRevolution/2);
+      } else {
+        myStepper.setSpeed(15);
+	      myStepper.step(stepsPerRevolution/4);
+      }
+      myservo.write(90); 
     }
+
+    Serial.println("done");
 
   }
 }
