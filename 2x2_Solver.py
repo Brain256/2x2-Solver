@@ -3,6 +3,7 @@ import cv2
 import time
 import numpy as np
 from collections import deque
+import serial
 
 def createFace(x, y, width):
     ROI = [x, y, x + width, y + width]
@@ -468,6 +469,8 @@ beginTime = False
 sGenerated = False
 result = []
 
+ser = serial.Serial('COM5', 9600)
+
 #main loop
 while True:
     
@@ -648,7 +651,21 @@ while True:
 
         sGenerated = True
 
-    #if sGenerated: 
+    elif sGenerated: 
+        for move in result: 
+            time.sleep(2)
+            print(move)
+            ser.write(move.encode())
+
+            while True: 
+
+                data = ser.readline().decode('utf-8').rstrip()
+
+                if data == "done":
+                    print("move finished")
+                    break
+        
+        break
         
     img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
     img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
