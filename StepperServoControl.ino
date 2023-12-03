@@ -27,6 +27,8 @@ void loop() {
 
     if(move[0] == 'D')
     {
+      myservo.write(0); 
+      delay(500); 
       if(move[1] == '1') {
         myStepper.setSpeed(15);
 	      myStepper.step(-stepsPerRevolution/4);
@@ -37,6 +39,8 @@ void loop() {
         myStepper.setSpeed(15);
 	      myStepper.step(stepsPerRevolution/4);
       }
+      delay(500); 
+      myservo.write(90); 
     } else if(move[0] == 'X') {
 
       for(int i = 0; i < move[1] - '0'; i++) {
@@ -47,19 +51,17 @@ void loop() {
       }
 
     } else if(move[0] == 'Y') {
-      myservo.write(0);
 
       if(move[1] == '1') {
         myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/4);
+	      myStepper.step(stepsPerRevolution/4);
       } else if(move[1] == '2') {
         myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/2);
+	      myStepper.step(stepsPerRevolution/2);
       } else {
         myStepper.setSpeed(15);
-	      myStepper.step(stepsPerRevolution/4);
+	      myStepper.step(-stepsPerRevolution/4);
       }
-      myservo.write(90); 
     }
 
     Serial.println("done");
