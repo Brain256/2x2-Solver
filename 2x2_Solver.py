@@ -469,7 +469,7 @@ beginTime = False
 sGenerated = False
 result = []
 
-ser = serial.Serial('COM5', 9600)
+ser = serial.Serial('COM5', 115200)
 
 #main loop
 while True:
@@ -643,6 +643,8 @@ while True:
 
         cube = solvePBL(result, cube) 
 
+        print(result)
+        
         result = parseToMachine(result)
         #m = solveCube(queue)
         #print(m)
@@ -652,8 +654,11 @@ while True:
         sGenerated = True
 
     elif sGenerated: 
+
+        time.sleep(2)
+
         for move in result: 
-            time.sleep(2)
+            time.sleep(0.5)
             print(move)
             ser.write(move.encode())
 
@@ -665,7 +670,9 @@ while True:
                     print("move finished")
                     break
         
+        print(f"cube solved in {round(time.time() - sTime, 2)}s")
         break
+
         
     img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
     img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
