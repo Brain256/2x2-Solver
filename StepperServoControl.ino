@@ -10,7 +10,7 @@ Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
 char move[3];
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   myservo.attach(5); 
   myservo.write(90); 
