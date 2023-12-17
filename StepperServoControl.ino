@@ -13,7 +13,7 @@ void setup() {
   Serial.begin(115200);
 
   myservo.attach(5); 
-  myservo.write(90); 
+  myservo.write(115); 
 
 }
 
@@ -27,7 +27,7 @@ void loop() {
 
     if(move[0] == 'D')
     {
-      myservo.write(0); 
+      myservo.write(140); 
       delay(500); 
       if(move[1] == '1') {
         myStepper.setSpeed(15);
@@ -40,13 +40,13 @@ void loop() {
 	      myStepper.step(stepsPerRevolution/4);
       }
       delay(500); 
-      myservo.write(90); 
+      myservo.write(115); 
     } else if(move[0] == 'X') {
 
       for(int i = 0; i < move[1] - '0'; i++) {
-        myservo.write(180); 
+        myservo.write(75); 
         delay(300); 
-        myservo.write(90); 
+        myservo.write(115); 
         delay(300);
       }
 
