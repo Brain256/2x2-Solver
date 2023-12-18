@@ -31,23 +31,35 @@ void loop() {
       delay(500); 
       if(move[1] == '1') {
         myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/4);
+	      myStepper.step(-stepsPerRevolution/4 - 40);
       } else if(move[1] == '2') {
         myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/2);
+	      myStepper.step(-stepsPerRevolution/2 - 40);
       } else {
         myStepper.setSpeed(15);
-	      myStepper.step(stepsPerRevolution/4);
+	      myStepper.step(stepsPerRevolution/4 + 40);
       }
       delay(500); 
       myservo.write(115); 
+      
+      if(move[1] == '1') {
+        myStepper.setSpeed(15);
+	      myStepper.step(40);
+      } else if(move[1] == '2') {
+        myStepper.setSpeed(15);
+	      myStepper.step(40);
+      } else {
+        myStepper.setSpeed(15);
+	      myStepper.step(-40);
+      }
+      
     } else if(move[0] == 'X') {
 
       for(int i = 0; i < move[1] - '0'; i++) {
-        myservo.write(75); 
+        myservo.write(74); 
         delay(300); 
         myservo.write(115); 
-        delay(300);
+        delay(500);
       }
 
     } else if(move[0] == 'Y') {
