@@ -471,6 +471,8 @@ result = []
 
 ser = serial.Serial('COM5', 115200)
 
+seq = [['Y1'], ['Y1'], ['Y1'], ['Y2', 'X1'], ['X2'], ['X1, Y2']]
+
 #main loop
 while True:
     
@@ -486,6 +488,20 @@ while True:
     if curTime - startTime > 5:
         if curFace != 6:
             curFace += 1
+
+            for move in seq[curFace-1]: 
+                time.sleep(0.5)
+                print(move)
+                ser.write(move.encode())
+
+                while True: 
+
+                    data = ser.readline().decode('utf-8').rstrip()
+
+                    if data == "done":
+                        print("move finished")
+                        break
+                    
             startTime = time.time()
     
     if curFace != 6: 
@@ -494,38 +510,38 @@ while True:
         img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
         # orange mask
-        lower_orange = np.array([6, 180, 172])
+        lower_orange = np.array([7, 90, 172])
         upper_orange = np.array([18, 255, 255])
 
         o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
         
         #create red mask
-        lower_red = np.array([0, 160, 155])
+        lower_red = np.array([0, 110, 155])
         upper_red = np.array([6, 255, 255])
         
         r_mask = cv2.inRange(img_hsv, lower_red, upper_red)
         
         #create green mask
-        lower_green = np.array([50, 100, 120])
-        upper_green = np.array([73, 255, 255])
+        lower_green = np.array([43, 0, 120])
+        upper_green = np.array([88, 255, 255])
 
         g_mask = cv2.inRange(img_hsv, lower_green, upper_green)
         
         #create blue mask
         lower_blue = np.array([92, 120, 110])
-        upper_blue = np.array([103, 255, 255])
+        upper_blue = np.array([110, 255, 255])
 
         b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
         
         #create white mask
         lower_white = np.array([0, 0, 168])
-        upper_white = np.array([180, 57, 224])
+        upper_white = np.array([180, 70, 224])
 
         w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
         #create yellow mask
-        lower_yellow = np.array([24, 100, 160])
-        upper_yellow = np.array([36, 255, 255])
+        lower_yellow = np.array([20, 90, 160])
+        upper_yellow = np.array([40, 255, 255])
 
         y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
         
@@ -622,7 +638,7 @@ while True:
         faceColours[curFace] = quadColours.copy()
 
     
-    elif sGenerated == False:
+    elif not sGenerated:
         
         sTime = time.time()
         queue = deque([])
@@ -652,7 +668,7 @@ while True:
         print(f"\nmoves: {len(result)}\nsolution: {' '.join(result)}\nfaces: {cube}\ntime: {round(time.time() - sTime, 2)}s\n")
 
         sGenerated = True
-
+    
     elif sGenerated: 
 
         time.sleep(2)
@@ -672,7 +688,7 @@ while True:
         
         print(f"cube solved in {round(time.time() - sTime, 2)}s")
         break
-
+    
         
     img = cv2.rectangle(img, (ROI_tl[0], ROI_tl[1]), (ROI_tl[2], ROI_tl[3]), (0, 255, 255), 4)
     img = cv2.rectangle(img, (ROI_bl[0], ROI_bl[1]), (ROI_bl[2], ROI_bl[3]), (0, 255, 255), 4)
