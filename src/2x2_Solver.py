@@ -534,8 +534,8 @@ while True:
         b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
         
         #create white mask
-        lower_white = np.array([0, 0, 168])
-        upper_white = np.array([180, 70, 224])
+        lower_white = np.array([0, 0, 120])
+        upper_white = np.array([180, 70, 255])
 
         w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
@@ -636,6 +636,7 @@ while True:
                     #print(area)
 
         faceColours[curFace] = quadColours.copy()
+        #img = img_hsv
 
     
     elif not sGenerated:
