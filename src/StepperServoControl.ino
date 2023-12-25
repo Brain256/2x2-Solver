@@ -13,7 +13,7 @@ void setup() {
   Serial.begin(115200);
 
   myservo.attach(5); 
-  myservo.write(115); 
+  myservo.write(113); 
 
 }
 
@@ -30,35 +30,35 @@ void loop() {
       myservo.write(140); 
       delay(500); 
       if(move[1] == '1') {
-        myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/4 - 40);
+        myStepper.setSpeed(13);
+	      myStepper.step(-stepsPerRevolution/4 - 45);
       } else if(move[1] == '2') {
-        myStepper.setSpeed(15);
-	      myStepper.step(-stepsPerRevolution/2 - 40);
+        myStepper.setSpeed(13);
+	      myStepper.step(-stepsPerRevolution/2 - 45);
       } else {
-        myStepper.setSpeed(15);
-	      myStepper.step(stepsPerRevolution/4 + 40);
+        myStepper.setSpeed(13);
+	      myStepper.step(stepsPerRevolution/4 + 45);
       }
       delay(500); 
-      myservo.write(115); 
+      myservo.write(113); 
       
       if(move[1] == '1') {
         myStepper.setSpeed(15);
-	      myStepper.step(40);
+	      myStepper.step(45);
       } else if(move[1] == '2') {
         myStepper.setSpeed(15);
-	      myStepper.step(40);
+	      myStepper.step(45);
       } else {
         myStepper.setSpeed(15);
-	      myStepper.step(-40);
+	      myStepper.step(-45);
       }
       
     } else if(move[0] == 'X') {
 
       for(int i = 0; i < move[1] - '0'; i++) {
-        myservo.write(74); 
+        myservo.write(70); 
         delay(300); 
-        myservo.write(115); 
+        myservo.write(113); 
         delay(500);
       }
 
