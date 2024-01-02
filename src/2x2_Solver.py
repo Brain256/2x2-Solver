@@ -26,7 +26,7 @@ def rotateCube(move, faces, times):
 
     faces = [face.copy() for face in faces]
 
-    for i in range(times): 
+    for i in range(times):   
         if move == "R":
             face_nums = [2]
             f = [1, 5, 3, 4]
@@ -232,7 +232,7 @@ def solveTB(queue):
         if len(move_list) > 11:
             break
 
-        #print(move_list)
+        print(move_list)
         
         faces = rotateCube(move_list[-1][0], faces, int(move_list[-1][1]))
         #print(faces)
@@ -485,12 +485,12 @@ while True:
 
     curTime = time.time()
         
-    if curTime - startTime > 5:
+    if curTime - startTime > 3:
         if curFace != 6:
             curFace += 1
 
             for move in seq[curFace-1]: 
-                time.sleep(0.5)
+                time.sleep(1)
                 print(move)
                 ser.write(move.encode())
 
@@ -511,7 +511,7 @@ while True:
         
         # orange mask
         lower_orange = np.array([7, 90, 172])
-        upper_orange = np.array([18, 255, 255])
+        upper_orange = np.array([16, 255, 255])
 
         o_mask = cv2.inRange(img_hsv, lower_orange, upper_orange)
         
@@ -532,15 +532,14 @@ while True:
         upper_blue = np.array([110, 255, 255])
 
         b_mask = cv2.inRange(img_hsv, lower_blue, upper_blue)
-        
         #create white mask
         lower_white = np.array([0, 0, 120])
-        upper_white = np.array([180, 70, 255])
+        upper_white = np.array([180, 50, 255])
 
         w_mask = cv2.inRange(img_hsv, lower_white, upper_white)
         
         #create yellow mask
-        lower_yellow = np.array([20, 90, 160])
+        lower_yellow = np.array([16, 90, 160])
         upper_yellow = np.array([40, 255, 255])
 
         y_mask = cv2.inRange(img_hsv, lower_yellow, upper_yellow)
@@ -675,7 +674,7 @@ while True:
         time.sleep(2)
 
         for move in result: 
-            time.sleep(0.5)
+            time.sleep(1)
             print(move)
             ser.write(move.encode())
 
