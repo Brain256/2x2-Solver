@@ -31,32 +31,35 @@ void loop() {
       delay(500); 
       if(move[1] == '1') {
         myStepper.setSpeed(13);
-	      myStepper.step(-stepsPerRevolution/4 - 45);
+	      myStepper.step(stepsPerRevolution/4 + 40);
       } else if(move[1] == '2') {
         myStepper.setSpeed(13);
-	      myStepper.step(-stepsPerRevolution/2 - 45);
+	      myStepper.step(stepsPerRevolution/2 + 40);
       } else {
         myStepper.setSpeed(13);
-	      myStepper.step(stepsPerRevolution/4 + 45);
+	      myStepper.step(-stepsPerRevolution/4 - 40);
       }
       delay(500); 
       myservo.write(113); 
       
       if(move[1] == '1') {
-        myStepper.setSpeed(15);
-	      myStepper.step(45);
+        myStepper.setSpeed(13);
+	      myStepper.step(-40);
       } else if(move[1] == '2') {
-        myStepper.setSpeed(15);
-	      myStepper.step(45);
+        myStepper.setSpeed(13);
+	      myStepper.step(-40);
       } else {
-        myStepper.setSpeed(15);
-	      myStepper.step(-45);
+        myStepper.setSpeed(13);
+	      myStepper.step(40);
       }
+
+      delay(500); 
       
     } else if(move[0] == 'X') {
 
       for(int i = 0; i < move[1] - '0'; i++) {
-        myservo.write(70); 
+
+        myservo.write(72); 
         delay(300); 
         myservo.write(113); 
         delay(500);
@@ -65,15 +68,17 @@ void loop() {
     } else if(move[0] == 'Y') {
 
       if(move[1] == '1') {
-        myStepper.setSpeed(15);
-	      myStepper.step(stepsPerRevolution/4);
-      } else if(move[1] == '2') {
-        myStepper.setSpeed(15);
-	      myStepper.step(stepsPerRevolution/2);
-      } else {
-        myStepper.setSpeed(15);
+        myStepper.setSpeed(13);
 	      myStepper.step(-stepsPerRevolution/4);
+      } else if(move[1] == '2') {
+        myStepper.setSpeed(13);
+	      myStepper.step(-stepsPerRevolution/2);
+      } else {
+        myStepper.setSpeed(13);
+	      myStepper.step(stepsPerRevolution/4);
       }
+
+      delay(500); 
     }
 
     Serial.println("done");
