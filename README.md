@@ -1,5 +1,7 @@
 # 2x2-Solver
 
+https://www.youtube.com/shorts/pykEr9slMbM
+
 This is a repository containing information on my Arduino 2x2 Rubik's cube solver 
 
 ## Hardware
